@@ -11,6 +11,7 @@ export default function infoPopup() {
         isOpen={isOpen}
         onRequestClose={() => setIsOpen(false)}
         className={styles.modal}
+        ariaHideApp={false}
       >
         <div className={styles.modalContent}>
           <div className={styles.modalHeader}>
@@ -37,7 +38,9 @@ export default function infoPopup() {
             <p>Once you're done, check back tomorrow for a new challenge!</p>
           </div>
           <div className={styles.modalFooter}>
-            <button onClick={() => setIsOpen(false)}>Close</button>
+            <button type="close" onClick={() => setIsOpen(false)}>
+              Close
+            </button>
           </div>
         </div>
       </Modal>
