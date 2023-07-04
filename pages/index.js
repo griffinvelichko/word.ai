@@ -44,7 +44,7 @@ export default function Home(props) {
       </Head>
       <div className={styles.container}>
         <header className={styles.header}>
-          <h1>LETTR.AIL</h1>
+          <h1>WORPH</h1>
           <div className={styles.nextto}>
             <InfoPopup />
             <PreviousGames words={words} onSelectWord={handleGameSelect} />

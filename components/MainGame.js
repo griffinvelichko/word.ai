@@ -31,7 +31,7 @@ const MainGame = forwardRef(
       startWord,
       wordOfTheDay,
       game,
-      highscore,
+      // highscore,
       date,
       initPath,
       initPersonalBestScore,
@@ -39,6 +39,7 @@ const MainGame = forwardRef(
     ref
   ) => {
     const fullyEnabled = new Array(startWord.length).fill(false);
+    const fullyDisabled = new Array(startWord.length).fill(true);
     const [currentWord, setCurrentWord] = useState(startWord);
     const [prevWord, setPrevWord] = useState(startWord);
     const isValid = useIsWordValid(currentWord.join("").toLowerCase());
@@ -58,7 +59,7 @@ const MainGame = forwardRef(
       if (currHistory) {
         setMapGameHistory(currHistory);
         const todayData = currHistory.get(date);
-        if (todayData && todayData.personalBestScore > 0) {
+        if (todayData && todayData.completed) {
           setPersonalBestScore(todayData.personalBestScore);
           setWordPath(todayData.wordPath);
         }
@@ -67,6 +68,7 @@ const MainGame = forwardRef(
 
     const handleSubmit = async () => {
       event.preventDefault();
+      console.log("B4: " + score + " " + personalBestScore);
       if (currentWord.toString() !== prevWord.toString() && isValid) {
         setIsSuccessful(true);
         setScore(score + 1);
@@ -77,14 +79,17 @@ const MainGame = forwardRef(
         setTimeout(() => setIsSuccessful(false), 250);
         if (currentWord.toString() === wordOfTheDay.toString()) {
           setComplete(true);
-          if (personalBestScore === 0 || score < personalBestScore) {
+          const completed = true;
+          // var newScore = personalBestScore;
+          if (personalBestScore === 0 || score + 1 < personalBestScore) {
             setPersonalBestScore(score + 1);
-            const completed = score + 1 === highscore;
+
             const todayData = {
               personalBestScore: score + 1,
               completed: completed,
               wordPath: [...wordPath, currentWord],
             };
+
             mapGameHistory.set(date, todayData);
             localStorage.clear();
             localStorage.setItem(
@@ -98,15 +103,20 @@ const MainGame = forwardRef(
         setCurrentWord(prevWord);
         setTimeout(() => setIsErrored(false), 250);
       }
+      console.log("After: " + score + " " + personalBestScore);
     };
 
     const handleBack = async () => {
       if (currentWord.toString() !== prevWord.toString()) {
+        if (currentWord.toString() === wordOfTheDay.toString()) {
+          setCurrentWord(wordPath[wordPath.length - 2]);
+          setWordPath(wordPath.slice(0, -1));
+          setPrevWord(wordPath[wordPath.length - 2]);
+          setScore(score - 1);
+        }
         setCurrentWord(prevWord);
       } else {
         if (score !== 0) {
-          console.log("WordPath:");
-          console.log(wordPath);
           setCurrentWord(wordPath[wordPath.length - 2]);
           setWordPath(wordPath.slice(0, -1));
           setPrevWord(wordPath[wordPath.length - 2]);
@@ -122,30 +132,38 @@ const MainGame = forwardRef(
       setCurrentWord(newWord);
     };
 
+    // Issue with setting personalBestScore on initGame
+    // Problem is somewhere in here:
     const initGame = () => {
+      console.log("date" + date);
+      console.log(mapGameHistory);
       const todayData = mapGameHistory.get(date);
+      console.log("today data: " + todayData);
       if (todayData && todayData.completed) {
         const updatedPath = todayData.wordPath;
         setWordPath(updatedPath);
         setCurrentWord(updatedPath[updatedPath.length - 1]);
         setPrevWord(updatedPath[updatedPath.length - 2]);
         setScore(updatedPath.length - 1);
+        setPersonalBestScore(initPersonalBestScore);
       } else {
         setWordPath([startWord]);
         setCurrentWord(startWord);
         setPrevWord(startWord);
         setScore(0);
+        setPersonalBestScore(0);
       }
     };
 
     const finishGame = () => {
       setComplete(false);
-      if (score !== highscore) {
-        setWordPath([startWord]);
-        setCurrentWord(startWord);
-        setPrevWord(startWord);
-        setScore(0);
-      }
+      setIsDisabled(fullyDisabled);
+      // if (score !== highscore) {
+      //   setWordPath([startWord]);
+      //   setCurrentWord(startWord);
+      //   setPrevWord(startWord);
+      //   setScore(0);
+      // }
     };
 
     useImperativeHandle(ref, () => ({
@@ -156,11 +174,14 @@ const MainGame = forwardRef(
 
     useEffect(() => {
       if (currentWord.toString() !== prevWord.toString()) {
-        setIsDisabled(() => {
-          return prevWord.map((letter, index) => {
-            return letter !== currentWord[index] ? false : true;
+        if (currentWord.toString() === wordOfTheDay.toString()) {
+          setIsDisabled(fullyDisabled);
+        } else
+          setIsDisabled(() => {
+            return prevWord.map((letter, index) => {
+              return letter !== currentWord[index] ? false : true;
+            });
           });
-        });
       } else {
         setIsDisabled(fullyEnabled);
       }
@@ -186,18 +207,18 @@ const MainGame = forwardRef(
                   on Move: {score}!
                 </h2>
                 <p></p>
-                {highscore !== score && (
+                {/* {highscore !== score && (
                   <p>
                     Try Again to beat the highscore {highscore} set by the AI
                     algorithm!
                   </p>
-                )}
-                {highscore === score && (
-                  <p>
-                    Congrats you bested our AI algorithm! Try Again tomorrow to
-                    show it who's boss!
-                  </p>
-                )}
+                )} */}
+                {/* {highscore === score && ( */}
+                <p>
+                  Congrats you found a path to the Word Of The Day! See if you
+                  can best your score or come back tomorrow for a new challenge!
+                </p>
+                {/* )} */}
               </div>
               <div className={styles.modalFooter}>
                 <button type="close" onClick={() => finishGame()}>
@@ -211,8 +232,9 @@ const MainGame = forwardRef(
           {mapGameHistory.get(date) && mapGameHistory.get(date).completed && (
             <div>
               <h2>Congrats!</h2>
-              <h3>You Got Today's Highscore of {highscore}!</h3>
-              <h3>Check tomorrow for a new challenge.</h3>
+              <h3>You Got To The Word Of The Day!</h3>
+              <h3></h3>
+              <h3>Check Tomorrow for a New Challenge.</h3>
             </div>
           )}
           <div>
